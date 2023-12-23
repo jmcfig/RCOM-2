@@ -5,7 +5,7 @@ INCLUDE = include/
 BIN = bin/
 .PHONY: run
 run: $(BIN)/download
-$(BIN)/download: $(SRC)/ftp_fetcher.c $(SRC)/url_parser.c $(SRC)/ftp_downloader.c $(SRC)/network_socket.c
+$(BIN)/download: $(SRC)/download.c $(SRC)/parse.c $(SRC)/main.c $(SRC)/sockets.c
 	$(CC) $(CFLAGS) -o $@ $^
 .PHONY: clean
 clean:
