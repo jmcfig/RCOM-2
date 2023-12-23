@@ -1,60 +1,68 @@
 #include "url_parser.h"
 
-int decodeURL(char * inputURL, URLComponents * components) {
-    char * protocol = strtok(inputURL, "/");
+int decodeURL(char * webAddress, URLComponents * resourceDetails) {
+    char * protocol = strtok(webAddress, "/");
     char * credentials = strtok(NULL, "/");
-    char * resourcePath = strtok(NULL, "");
+    char * resourceSpecifier = strtok(NULL, "");
 
-    if (protocol == NULL || credentials == NULL || resourcePath == NULL) {
-        fprintf(stderr, "Invalid URL format!\n");
+    if (protocol == NULL || credentials == NULL || resourceSpecifier == NULL) {
+        fprintf(stderr, "Error: The URL provided is not valid!\n");
         return -1;
     }
 
     if (containsCredentials(credentials)) {
-        char * loginDetails = strtok(credentials, "@");
-        char * serverAddr = strtok(NULL, "@");
+        char * authPart = strtok(credentials, "@");
+        char * hostPart = strtok(NULL, "@");
 
-        char * userName = strtok(loginDetails, ":");
-        char * userPass = strtok(NULL, ":");
+        char * userId = strtok(authPart, ":");
+        char * userPassword = strtok(NULL, ":");
 
-        strcpy(components->username, userName ? userName : "default");
-        strcpy(components->secret, userPass ? userPass : "default");
-        strcpy(components->server, serverAddr);
+        strncpy(resourceDetails->username, userId ? userId : "default", sizeof(resourceDetails->username) - 1);
+        strncpy(resourceDetails->secret, userPassword ? userPassword : "pass", sizeof(resourceDetails->secret) - 1);
+        strncpy(resourceDetails->server, hostPart, sizeof(resourceDetails->server) - 1);
     }
     else {
-        strcpy(components->username, "guest");
-        strcpy(components->secret, "none");
-        strcpy(components->server, credentials);
+        strncpy(resourceDetails->username, "anonymous", sizeof(resourceDetails->username) - 1);
+        strncpy(resourceDetails->secret, "pass", sizeof(resourceDetails->secret) - 1);
+        strncpy(resourceDetails->server, credentials, sizeof(resourceDetails->server) - 1);
     }
 
-    char * fileName = extractFileName(resourcePath);
-    strcpy(components->resource, resourcePath);
-    strcpy(components->resource_name, fileName);
+    char * filename = extractFileName(resourceSpecifier);
+    strncpy(resourceDetails->resource, resourceSpecifier, sizeof(resourceDetails->resource) - 1);
+    strncpy(resourceDetails->resource_name, filename, sizeof(resourceDetails->resource_name) - 1);
 
-    if (!strcmp(components->server, "") || !strcmp(components->resource, "")) {
-        fprintf(stderr, "Incomplete URL details!\n");
+    if (!strcmp(resourceDetails->server, "") || !strcmp(resourceDetails->resource, "")) {
+        fprintf(stderr, "Error: The URL does not contain complete details!\n");
         return -1;
     }
 
-    struct hostent * hostInfo;
-    if ((hostInfo = gethostbyname(components->server)) == NULL) {  
-        herror("resolve host");
+    struct hostent * hostEntity;
+
+    if ((hostEntity = gethostbyname(resourceDetails->server)) == NULL) {  
+        herror("gethostbyname");
         return -1;
     }
 
-    strcpy(components->server_name, hostInfo->h_name);
-    strcpy(components->server_ip, inet_ntoa(*((struct in_addr *)hostInfo->h_addr)));
+    strncpy(resourceDetails->server_name, hostEntity->h_name, sizeof(resourceDetails->server_name) - 1);
+    strncpy(resourceDetails->server_ip, inet_ntoa(*((struct in_addr *)hostEntity->h_addr)), sizeof(resourceDetails->server_ip) - 1);
 
-    printf("\nUsername: %s\n", components->username);
-    printf("Password: %s\n", components->secret);
-    printf("Server: %s\n", components->server);
-    printf("Resource Path: %s\n", components->resource);
-    printf("Resource Name: %s\n", components->resource_name);
-    printf("Server Name: %s\n", components->server_name);
-    printf("Server IP: %s\n\n", components->server_ip);
+    printf("\nUsername: %s\n", resourceDetails->username);
+    printf("Secret: %s\n", resourceDetails->secret);
+    printf("Server: %s\n", resourceDetails->server);
+    printf("Resource Path: %s\n", resourceDetails->resource);
+    printf("Resource Name: %s\n", resourceDetails->resource_name);
+    printf("Server Name: %s\n", resourceDetails->server_name);
+    printf("Server IP: %s\n\n", resourceDetails->server_ip);
 
     return 0;
 }
+
+int containsCredentials(char * urlString) {
+    return strchr(urlString, '@') != NULL;
+}
+
+
+
 
 char * extractFileName(char * resourcePath) {
     char * fileName = resourcePath;
@@ -73,8 +81,3 @@ char * extractFileName(char * resourcePath) {
     return fileName;
 }
 
-
-
-int containsCredentials(char * urlString) {
-    return strchr(urlString, '@') != NULL;
-}
