@@ -7,7 +7,6 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 
-// Structure for storing URL components
 typedef struct {
     char server[512];
     char username[256];
